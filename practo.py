@@ -168,7 +168,7 @@ if 1:
             print('Scraping data')
             # Tests
             try:
-                1  # process_tests_list(tests_list, filename)  #
+                process_tests_list(tests_list, filename)  #
             except KeyboardInterrupt:
                 exit()
             except Exception:
@@ -177,11 +177,11 @@ if 1:
             packages_list = []
             cl = 'c-package o-f-color--primary u-marginr--less'
             url_prefix = 'https://www.practo.com'
-            for e in soup.findAll(class_=cl):
-                packages_list.append(url_prefix+e['href'])
-            print('Scraping data')
+            # for e in soup.findAll(class_=cl):
+            #     packages_list.append(url_prefix+e['href'])
+            # print('Scraping data')
             try:
-                process_packages_list(packages_list, filename)
+                1  # process_packages_list(packages_list, filename)
             except KeyboardInterrupt:
                 exit()
             except Exception:
