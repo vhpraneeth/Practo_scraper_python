@@ -183,22 +183,6 @@ if 1:
 driver.quit()
 
 '''
-apt install chromium
-
-from bs4 import BeautifulSoup
-from selenium import webdriver
-options = webdriver.ChromeOptions()
-options.add_argument('headless')
-driver = webdriver.Chrome(options=options)
-
-url = 'https://www.practo.com/health-checkup-packages/advanced-diabetic-patients-health-checkup/p?tag_id=28&city=delhi'
-driver.get(url)
-page_source = driver.page_source
-soup = BeautifulSoup(driver.page_source, 'lxml')
-text = soup.text.replace('\n', ' ')
-
-driver.quit()
-
 while 1:
     main()
     break  # temp
@@ -207,9 +191,13 @@ while 1:
 '''
 
 '''
+apt install chromium
+
 # git config --global user.name "Praneeth"
 # git config --global user.email "praneeth.18bce7147@vitap.ac.in"
 git add .
 git commit -m "Improved code"
 git push
+
+vhpraneeth
 '''
