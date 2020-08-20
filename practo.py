@@ -10,8 +10,8 @@ import pandas as pd
 from selenium import webdriver
 
 os.system('mkdir csv_practo > /dev/null 2>&1')
-# options = webdriver.ChromeOptions()  #
-# options.add_argument('headless')  #
+# options = webdriver.ChromeOptions()
+# options.add_argument('headless')
 # driver = webdriver.Chrome(options=options)
 
 print("Starting...")
@@ -45,15 +45,12 @@ def process_tests_list(tests_list, filename):
         name = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div[1]/h1/text()'
         alt_name = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div[1]/span/span[2]/text()'
         price = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div[2]/div[2]/div[1]/div[1]/text()'
-        #
-        row_elements = [name, alt_name, price]
-        # row = []
-        # for elem in row_elements:
-        #     text = tree.xpath(elem)[0]
-        #     row.append(text)
-        row = [tree.xpath(elem)[0] for elem in row_elements]
-        if row[1] == '':
-            row[1] = row[0]
+        name = tree.xpath(name)[0]
+        alt_name = tree.xpath(alt_name)[0]
+        if not alt_name:
+            alt_name = name
+        price = tree.xpath(price)[1]
+        row = [name, alt_name, price]
         #
         soup = BeautifulSoup(res.text, 'lxml')
         text = soup.text.replace('\n', ' ')
@@ -76,7 +73,53 @@ def process_tests_list(tests_list, filename):
                 csvwriter = csv.writer(file)
                 csvwriter.writerow(row)
                 done.append(url)
-        # break  # temp
+
+
+def process_packages_list(packages_list, filename):
+    global done
+    for url in tests_list:
+        while 1:
+            try:
+                res = requests.get(url)
+                res.raise_for_status()
+            except Exception:
+                print('.', end='', flush=True)
+                pass
+            except KeyboardInterrupt:
+                print('URL:', url)
+                break  # return
+            else:
+                break
+        tree = html.fromstring(res.text)  # driver.page_source
+        name = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div[1]/h1/text()'
+        age = ''
+        name = tree.xpath(name)[0]
+        alt_name = tree.xpath(alt_name)[0]
+        if not alt_name:
+            alt_name = name
+        price = tree.xpath(price)[1]
+        row = [name, alt_name, price]
+        #
+        soup = BeautifulSoup(res.text, 'lxml')
+        text = soup.text.replace('\n', ' ')
+        what_is_this_test = text[text.find('What is this test?')+len('What is this test?'):text.find('Why this test is performed?')]
+        why_performed = text[text.find('Why this test is performed?')+len('Why this test is performed?'):text.find('Frequency:')]
+        frequency = text[text.find('Frequency:')+len('Frequency:'):text.find('Precautions:')]
+        if not frequency:
+            frequency = text[text.find('Frequency:')+len('Frequency:'):text.find('Test Preparation')]
+        precautions = text[text.find('Precautions:')+len('Precautions:'):text.find('Test Preparation')]
+        test_preparation = text[text.find('Test Preparation')+len('Test Preparation'):text.find('Understanding your test results')]
+        understanding_results = text[text.find('Understanding your test results')+len('Understanding your test results'):text.find('Your Cart')]
+        #
+        row += [what_is_this_test, why_performed, frequency, precautions, test_preparation, understanding_results, url]
+        print([item[:20] for item in row])
+        if not all(row):
+            print(f'----> Empty data in url {url}\n')
+        with open(filename, 'a+') as file:
+            if url not in done:  # URL not in file
+                csvwriter = csv.writer(file)
+                csvwriter.writerow(row)
+                done.append(url)
 
 
 # def main():
@@ -89,7 +132,6 @@ if 1:
         for category in all_categories:
             print(f'    Processing for category {category}', end='')
             filename = f'{folder_name}/{city}/{category}.csv'
-            df = pd.DataFrame(columns=test_columns)  #
             with open(filename, 'a+') as file:
                 file.seek(0, 0)
                 if file.read():  # if not empty, load urls from file
@@ -126,13 +168,26 @@ if 1:
             print('Scraping data')
             # Tests
             try:
-                process_tests_list(tests_list, filename)
+                1  # process_tests_list(tests_list, filename)  #
+            except KeyboardInterrupt:
+                exit()
+            except Exception:
+                pass
+            # Packages
+            packages_list = []
+            cl = 'c-package o-f-color--primary u-marginr--less'
+            url_prefix = 'https://www.practo.com'
+            for e in soup.findAll(class_=cl):
+                packages_list.append(url_prefix+e['href'])
+            print('Scraping data')
+            try:
+                process_packages_list(packages_list, filename)
             except KeyboardInterrupt:
                 exit()
             except Exception:
                 pass
             # break
-        #break  # temp
+        # break  # temp
 
 
 '''
