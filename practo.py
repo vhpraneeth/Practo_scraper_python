@@ -7,6 +7,7 @@ import csv
 from lxml import html
 from bs4 import BeautifulSoup
 import pandas as pd
+import multiprocessing
 from selenium import webdriver
 
 os.system('mkdir csv_practo > /dev/null 2>&1')
@@ -18,7 +19,7 @@ print("Starting...")
 done = []
 url_format = 'https://www.practo.com/tests?city={}'
 category_url_format = 'https://www.practo.com/health-checkup-packages/{}?city={}'  # category, city
-all_cities = ['delhi', 'mumbai']  # ['bangalore', 'delhi', 'mumbai', 'chennai', 'hyderabad', 'kolkata', 'pune', 'ahmedabad']
+all_cities = ['bangalore', 'delhi', 'mumbai', 'chennai', 'hyderabad', 'kolkata', 'pune', 'ahmedabad']  # 
 all_categories = ['diabetes-checkup', 'cancer-screening-health-checkup', 'skin-care-checkups', 'kidney-urine-checkups',
                   'stomach-digestion-checkups', 'sexual-wellness-checkups', 'bone-joints-checkups', 'fever-checkup']
 test_columns = ['Test name', 'Alternate name', 'Price', 'What is this test?', 'Why this test is performed?',
@@ -48,10 +49,11 @@ def process_tests_list(tests_list, filename):
         alt_name = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div[1]/span/span[2]/text()'
         price = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div[2]/div[2]/div[1]/div[1]/text()'
         name = tree.xpath(name)[0]
-        alt_name = tree.xpath(alt_name)[0]
-        if not alt_name:
+        try:
+            alt_name = tree.xpath(alt_name)[0]
+        except:
             alt_name = name
-        price = tree.xpath(price)[1]
+        price = ''.join(tree.xpath(price))
         row = [name, alt_name, price]
         #
         soup = BeautifulSoup(res.text, 'lxml')
@@ -66,9 +68,10 @@ def process_tests_list(tests_list, filename):
         understanding_results = text[text.find('Understanding your test results')+len('Understanding your test results'):text.find('Your Cart')]
         #
         row += [what_is_this_test, why_performed, frequency, precautions, test_preparation, understanding_results, url]
-        print([item[:20] for item in row])
+        # print([item[:20] for item in row])
         if not all(row):
-            print(f'----> Empty data in url {url}\n')
+            pass
+            # print(f'----> Empty data in url {url}\n')
             # continue
         with open(filename, 'a+') as file:
             if url not in done:  # URL not in file
@@ -96,11 +99,12 @@ def process_packages_list(packages_list, filename):
         number_of_tests = f'Includes {includes[:3]}'
         includes_tests = text[text.find(number_of_tests)+len(number_of_tests):text.find('How it works?')]
         row = [name, for_age, includes, preparation_needed, who_should_book, highly_recommended, includes_tests, url]
-        print(f'{highly_recommended[:10]}..{highly_recommended[-10:]}')
+        # print(f'{highly_recommended[:10]}..{highly_recommended[-10:]}')
         #
-        print([item[:10] for item in row])
+        # print([item[:10] for item in row])
         if not all(row):
-            print(f'----> Empty data in url {url}\n')
+            pass
+            # print(f'----> Empty data in url {url}\n')
         with open(filename, 'a+') as file:
             if url not in done:  # URL not in file
                 csvwriter = csv.writer(file)
@@ -108,79 +112,90 @@ def process_packages_list(packages_list, filename):
                 done.append(url)
 
 
+def process_category(category):
+    global global_city
+    global done
+    print(f'    Processing for category {category}', end='')
+    filename = f'{folder_name}/{city}/{category}.csv'
+    for stype in ['test', 'package']:
+        s_filename = filename.replace(f'{category}', f'{stype}_{category}')
+        with open(s_filename, 'a+') as file:
+            file.seek(0, 0)
+            if file.read():  # if not empty, load urls from file
+                file.seek(0, 0)
+                csv_reader = csv.DictReader(file, delimiter=',')
+                done += [line['Link'] for line in csv_reader]
+            else:  # if empty, write first column
+                # file.seek(0, 0)
+                csvwriter = csv.writer(file)
+                csvwriter.writerow(test_columns if stype == 'test' else package_columns)
+    category_url = category_url_format.format(category, city)
+    url = category_url.format(city)
+    print('.', end='', flush=True)
+    # print('Loading {}... '.format(url))
+    while 1:
+        try:
+            res = requests.get(url)
+            res.raise_for_status()
+        except Exception:
+            print('.', end='', flush=True)
+            pass
+        except KeyboardInterrupt:
+            print('URL:', url)
+            break  # return  # pending
+        else:
+            break
+    print('.', end='', flush=True)
+    soup = BeautifulSoup(res.text, 'lxml')
+    print('Scraping data')
+    # Tests
+    stype = 'test'
+    cl = 'u-pad--std--half u-border--std'
+    url_prefix = 'https://www.practo.com'
+    # tests_list = []
+    # for e in soup.findAll(class_=cl):
+    #     tests_list.append(url_prefix+e['href'])
+    tests_list = [url_prefix+e['href'] for e in soup.findAll(class_=cl)]
+    try:
+        process_tests_list(tests_list, filename.replace(f'{category}', f'{stype}_{category}'))
+    except KeyboardInterrupt:
+        exit()
+    except Exception:
+        print(f'Failed for filename {filename}')
+        pass
+    # Packages
+    stype = 'package'
+    packages_list = []
+    cl = 'c-package o-f-color--primary u-marginr--less'
+    url_prefix = 'https://www.practo.com'
+    for e in soup.findAll(class_=cl):
+        packages_list.append(url_prefix+e.a['href'])
+    try:
+        process_packages_list(packages_list, filename.replace(f'{category}', f'{stype}_{category}'))
+    except KeyboardInterrupt:
+        exit()
+    except Exception:
+        print(f'Failed for filename {filename}')
+        pass
+    # break
+
+
 # def main():
 #    global done
 if 1:
     for city in all_cities:
+        global_city = city
         folder_name = 'csv_practo'
         print(f'Processing for city {city}')
         os.system(f'mkdir {folder_name}/{city} > /dev/null 2>&1')
-        for category in all_categories:
-            print(f'    Processing for category {category}', end='')
-            filename = f'{folder_name}/{city}/{category}.csv'
-            for stype in ['test', 'package']:
-                s_filename = filename.replace(f'{category}', f'{stype}_{category}')
-                with open(s_filename, 'a+') as file:
-                    file.seek(0, 0)
-                    if file.read():  # if not empty, load urls from file
-                        file.seek(0, 0)
-                        csv_reader = csv.DictReader(file, delimiter=',')
-                        done += [line['Link'] for line in csv_reader]
-                    else:  # if empty, write first column
-                        file.seek(0, 0)
-                        csvwriter = csv.writer(file)
-                        csvwriter.writerow(test_columns if stype == 'test' else package_columns)
-            category_url = category_url_format.format(category, city)
-            url = category_url.format(city)
-            print('.', end='', flush=True)
-            # print('Loading {}... '.format(url))
-            while 1:
-                try:
-                    res = requests.get(url)
-                    res.raise_for_status()
-                except Exception:
-                    print('.', end='', flush=True)
-                    pass
-                except KeyboardInterrupt:
-                    print('URL:', url)
-                    break  # return  # pending
-                else:
-                    break
-            print('.', end='', flush=True)
-            soup = BeautifulSoup(res.text, 'lxml')
-            print('Scraping data')
-            # Tests
-            stype = 'test'
-            tests_list = []
-            cl = 'u-pad--std--half u-border--std'
-            url_prefix = 'https://www.practo.com'
-            for e in soup.findAll(class_=cl):
-                tests_list.append(url_prefix+e['href'])
-            try:
-                0  # process_tests_list(tests_list, filename.replace(f'{category}', f'{type}_{category}'))  #
-            except KeyboardInterrupt:
-                exit()
-            except Exception:
-                print(f'Failed for filename {filename}')
-                pass
-            # Packages
-            stype = 'package'
-            packages_list = []
-            cl = 'c-package o-f-color--primary u-marginr--less'
-            url_prefix = 'https://www.practo.com'
-            for e in soup.findAll(class_=cl):
-                packages_list.append(url_prefix+e.a['href'])
-            try:
-                process_packages_list(packages_list, filename.replace(f'{category}', f'{stype}_{category}'))
-            except KeyboardInterrupt:
-                exit()
-            except Exception:
-                print(f'Failed for filename {filename}')
-                pass
-            break
-        break  # temp
+        with multiprocessing.Pool(processes=4) as pool:
+            pool.map(process_category, all_categories)
+        # for category in all_categories:
+    # break  # temp
+
 
 driver.quit()
+
 
 '''
 while 1:
@@ -189,15 +204,12 @@ while 1:
     print('Done. Waiting for 5 minutes.')
     time.sleep(300)
 '''
-
 '''
 apt install chromium
-
 # git config --global user.name "Praneeth"
 # git config --global user.email "praneeth.18bce7147@vitap.ac.in"
 git add .
 git commit -m "Improved code"
 git push
-
 vhpraneeth
 '''
