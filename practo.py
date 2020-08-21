@@ -43,8 +43,7 @@ def process_tests_list(tests_list, filename):
                 break  # return  # pending
             else:
                 break
-        # driver.get(url)
-        tree = html.fromstring(res.text)  # driver.page_source
+        tree = html.fromstring(res.text)
         name = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div[1]/h1/text()'
         alt_name = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div[1]/span/span[2]/text()'
         price = '/html/body/div[1]/div/div/div[2]/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div[2]/div[2]/div[1]/div[1]/text()'
@@ -70,8 +69,7 @@ def process_tests_list(tests_list, filename):
         row += [what_is_this_test, why_performed, frequency, precautions, test_preparation, understanding_results, url]
         # print([item[:20] for item in row])
         if not all(row):
-            pass
-            # print(f'----> Empty data in url {url}\n')
+            print(f'----> Empty data in url {url}\n')
             # continue
         with open(filename, 'a+') as file:
             if url not in done:  # URL not in file
@@ -99,12 +97,11 @@ def process_packages_list(packages_list, filename):
         number_of_tests = f'Includes {includes[:3]}'
         includes_tests = text[text.find(number_of_tests)+len(number_of_tests):text.find('How it works?')]
         row = [name, for_age, includes, preparation_needed, who_should_book, highly_recommended, includes_tests, url]
-        # print(f'{highly_recommended[:10]}..{highly_recommended[-10:]}')
         #
         # print([item[:10] for item in row])
         if not all(row):
             pass
-            # print(f'----> Empty data in url {url}\n')
+            print(f'----> Empty data in url {url}\n')
         with open(filename, 'a+') as file:
             if url not in done:  # URL not in file
                 csvwriter = csv.writer(file)
@@ -152,9 +149,6 @@ def process_category(category):
     stype = 'test'
     cl = 'u-pad--std--half u-border--std'
     url_prefix = 'https://www.practo.com'
-    # tests_list = []
-    # for e in soup.findAll(class_=cl):
-    #     tests_list.append(url_prefix+e['href'])
     tests_list = [url_prefix+e['href'] for e in soup.findAll(class_=cl)]
     try:
         process_tests_list(tests_list, filename.replace(f'{category}', f'{stype}_{category}'))
@@ -190,14 +184,12 @@ if 1:
         os.system(f'mkdir {folder_name}/{city} > /dev/null 2>&1')
         with multiprocessing.Pool(processes=4) as pool:
             pool.map(process_category, all_categories)
-        # for category in all_categories:
     # break  # temp
 
 
 driver.quit()
 
 '''
-<<<<<<< HEAD
 apt install chromium
 
 from bs4 import BeautifulSoup
@@ -212,19 +204,14 @@ page_source = driver.page_source
 soup = BeautifulSoup(driver.page_source, 'lxml')
 text = soup.text.replace('\n', ' ')
 
-driver.quit()
-=======
 while 1:
     main()
     break  # temp
     print('Done. Waiting for 5 minutes.')
     time.sleep(300)
->>>>>>> 921cc1b13b2112930f32916ca054a1f69a906dd4
 '''
 
 '''
-apt install chromium
-
 # git config --global user.name "Praneeth"
 # git config --global user.email "praneeth.18bce7147@vitap.ac.in"
 git add .
