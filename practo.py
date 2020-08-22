@@ -92,6 +92,7 @@ def process_packages_list(packages_list, filename):
         soup = BeautifulSoup(driver.page_source, 'lxml')
         text = soup.text.replace('\n', ' ')
         for_age = text[text.find('Ideal for individuals aged ')+len('Ideal for individuals aged '):text.find('Includes')]
+        for_age = for_age.split('\xa0')[-1]
         includes = text[text.find('Includes')+len('Includes '):text.find('Why book with us?')]
         preparation_needed = text[text.find('What preparation is needed for this Checkup?')+len('What preparation is needed for this Checkup?'):text.find('Who should book this checkup?')]
         who_should_book = text[text.find('Who should book this checkup?')+len('Who should book this checkup?'):text.find('Highly recommended for people with')]
