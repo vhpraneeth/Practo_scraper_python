@@ -7,7 +7,6 @@ import csv
 from lxml import html
 from bs4 import BeautifulSoup
 import pandas as pd
-import multiprocessing
 from selenium import webdriver
 
 os.system('mkdir csv_practo > /dev/null 2>&1')
@@ -20,6 +19,9 @@ done = []
 url_format = 'https://www.practo.com/tests?city={}'
 category_url_format = 'https://www.practo.com/health-checkup-packages/{}?city={}'  # category, city
 all_cities = ['bangalore', 'delhi', 'mumbai', 'chennai', 'hyderabad', 'kolkata', 'pune', 'ahmedabad']  # 
+# all_cities = ['Bangalore', 'Hyderabad', 'Chennai', 'Mumbai', 'Delhi', 'Pune', 'Kolkata', 'Navi Mumbai',
+#               'Thane', ' Gurgaon', 'Noida', 'Ahmedabad', 'Chandigarh', 'Ghaziabad', 'Indore',
+#               'Jaipur', 'Lucknow', ' Patna', 'Ernakulam', 'Bhubaneswar', 'Coimbatore']
 all_categories = ['diabetes-checkup', 'cancer-screening-health-checkup', 'skin-care-checkups', 'kidney-urine-checkups',
                   'stomach-digestion-checkups', 'sexual-wellness-checkups', 'bone-joints-checkups', 'fever-checkup']
 test_columns = ['Test name', 'Alternate name', 'Price', 'What is this test?', 'Why this test is performed?',
@@ -54,7 +56,6 @@ def process_tests_list(tests_list, filename):
         except:
             alt_name = name
         price = ''.join(tree.xpath(price))
-        row = [name, alt_name, price]
         #
         soup = BeautifulSoup(res.text, 'lxml')
         text = soup.text.replace('\n', ' ')
@@ -67,8 +68,8 @@ def process_tests_list(tests_list, filename):
         test_preparation = text[text.find('Test Preparation')+len('Test Preparation'):text.find('Understanding your test results')]
         understanding_results = text[text.find('Understanding your test results')+len('Understanding your test results'):text.find('Your Cart')]
         #
-        row += [what_is_this_test, why_performed, frequency, precautions, test_preparation, understanding_results, url]
-        # print([item[:20] for item in row])
+        row += [name, alt_name, price, what_is_this_test, why_performed, frequency, precautions, test_preparation, understanding_results, url]
+        # print([item[:10] for item in row])
         if not all(row):
             pass
             # print(f'----> Empty data in url {url}\n')
@@ -153,9 +154,6 @@ def process_category(category):
     stype = 'test'
     cl = 'u-pad--std--half u-border--std'
     url_prefix = 'https://www.practo.com'
-    # tests_list = []
-    # for e in soup.findAll(class_=cl):
-    #     tests_list.append(url_prefix+e['href'])
     tests_list = [url_prefix+e['href'] for e in soup.findAll(class_=cl)]
     try:
         process_tests_list(tests_list, filename.replace(f'{category}', f'{stype}_{category}'))
@@ -189,9 +187,10 @@ if 1:
         folder_name = 'csv_practo'
         print(f'Processing for city {city}')
         os.system(f'mkdir {folder_name}/{city} > /dev/null 2>&1')
-        with multiprocessing.Pool(processes=4) as pool:
-            pool.map(process_category, all_categories)
-        # for category in all_categories:
+        # with multiprocessing.Pool(processes=4) as pool:
+        #     pool.map(process_category, all_categories)
+        for category in all_categories:
+            process_category(category)
     # break  # temp
 
 
